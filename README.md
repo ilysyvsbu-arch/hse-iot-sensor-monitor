@@ -12,8 +12,61 @@ REST-сервис на FastAPI для сбора, хранения, фильтр
 ## 1. Создание окружения и установка зависимостей
 
 Клонируйте репозиторий и создайте виртуальное окружение:
-
-```bash
-git clone [https://github.com/ilysyvsbu-arch/hse-iot-sensor-monitor.git](https://github.com/ilysyvsbu-arch/hse-iot-sensor-monitor.git)
+bash
+git clone https://github.com/ilysyvsbu-arch/hse-iot-sensor-monitor.git
 cd hse-iot-sensor-monitor
 python3 -m venv .venv
+
+Активируйте окружение:
+* **Linux / macOS:** `source .venv/bin/activate`
+* **Windows (PowerShell):** `.venv\Scripts\Activate.ps1`
+
+Установите зависимости:
+bash
+pip install -r requirements-dev.txt
+## 2. Переменные окружения
+
+Приложение читает настройки из переменных окружения (пример находится в файле `.env.example`):
+* `APP_VERSION` — версия приложения (по умолчанию `1.0.0`).
+* `MAX_TEMP_THRESHOLD` — верхний порог температуры в °C, при превышении которого выставляется флаг тревоги `alert=True` и пишется предупреждение в лог (по умолчанию `35.0`).
+
+Задать переменные перед запуском можно в терминале:
+* **Linux / macOS:** `export MAX_TEMP_THRESHOLD=30.0`
+* **Windows (PowerShell):** `$env:MAX_TEMP_THRESHOLD="30.0"`
+
+## 3. Запуск приложения и документация `/docs`
+
+### Режим разработки (с автоперезагрузкой):
+bash
+uvicorn app_final:app --reload --host 127.0.0.1 --port 8000
+### Обычная работа приложения (без `--reload` для эксплуатации):
+bash
+uvicorn app_final:app --host 0.0.0.0 --port 8000
+После запуска интерактивная документация Swagger UI доступна в браузере по адресу:
+* **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+## 4. Основные маршруты
+
+* `GET /health` — проверка работоспособности сервиса.
+* `GET /version` — текущая версия приложения и значение порога температуры.
+* `POST /readings` — добавление нового показания датчика (`sensor_id`, `location`, `temperature`, `humidity`).
+* `GET /readings` — получение списка показаний с фильтрацией по параметрам `?location=...` и `?alert_only=true`.
+* `GET /sensors/{sensor_id}/stats` — расчёт статистики (мин, макс, средняя температура, наличие тревог) по конкретному датчику.
+
+## 5. Запуск автоматических тестов
+
+Для запуска тестов выполните команду:
+bash
+python -m pytest -v
+## 6. Проверка и диагностика
+
+1. **Проверка работоспособности (`/health`):**
+2. bash
+curl http://127.0.0.1:8000/health
+2. **Проверка версии и конфигурации (`/version`):**
+3. bash
+curl http://127.0.0.1:8000/version
+Ожидаемый ответ: {"version":"1.0.0","max_temp_threshold":35.0}
+3. **Где смотреть логи:**
+* При запуске сервиса все события (`INFO`, `WARNING`, `ERROR`) выводятся в стандартный поток вывода терминала (`stdout`) с временными метками.
+* При превышении порога температуры в консоли появляется запись уровня `[WARNING] ALERT! High temperature...`, а при запросе несуществующего датчика — `[ERROR] Sensor '...' not found`.
