@@ -93,7 +93,40 @@ def list_readings(
         results = [r for r in results if r["alert"] is True]
     return {"count": len(results), "items": results}
 
+# Полезный маршрут: Список датчиков
+@app.get("/sensors")
+def list_sensors():
+    sensors = {}
 
+    for reading in READINGS_DB:
+        sensor_id = reading["sensor_id"]
+
+        if sensor_id not in sensors:
+            sensors[sensor_id] = {
+                "sensor_id": sensor_id,
+                "location": reading["location"],
+                "readings_count": 0,
+                "has_alerts": False,
+            }
+
+        sensor = sensors[sensor_id]
+        sensor["location"] = reading["location"]
+        sensor["readings_count"] += 1
+        sensor["has_alerts"] = (
+            sensor["has_alerts"] or reading["alert"]
+        )
+
+    items = sorted(
+        sensors.values(),
+        key=lambda sensor: sensor["sensor_id"],
+    )
+
+    logger.info("Listed sensors: count=%s", len(items))
+
+    return {
+        "count": len(items),
+        "items": items,
+    }
 # Полезный маршрут №3: Статистика по конкретному датчику (path-параметр sensor_id)
 @app.get("/sensors/{sensor_id}/stats")
 def get_sensor_stats(sensor_id: str):
